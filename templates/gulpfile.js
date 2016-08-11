@@ -1,10 +1,11 @@
 // =================
 // alloyteam simple project build gulpfile
 // author: rehornchen@tencent.com
-// version: 0.7.0
-// last update: 2015-01-11
+// version: 0.8.0
+// last update: 2016-08-11
 // created: 2014-07-15
 // history:
+// 0.8.0 2016-08-11 update dependencies version & add babel-loader
 // 0.7.0 2015-01-11 jade/ejs support, html extend support
 // 0.6.1 2014-12-01 add liveproxy support
 // 0.5.0 2014-11-24 refact: js modular with webpack
@@ -35,17 +36,16 @@ var liveproxy = require('liveproxy');
 var compass = require('gulp-compass'),
     rev = require('gulp-rev'),
     uglify = require('gulp-uglify'),
-    minifyCss = require('gulp-minify-css'),
+    cleanCSS = require('gulp-clean-css'), // replace gulp-minify-css to gulp-clean-css
     // imagemin = require('gulp-imagemin'),
     minifyHtml = require('gulp-minify-html'),
     savefile = require('gulp-savefile'),
-    webpack = require('gulp-webpack'),
+    webpack = require('webpack-stream'),
     htmlrefs = require('gulp-htmlrefs'),
     zip = require('gulp-zip'),
     extender = require('gulp-html-extend'),
     gulpIf = require('gulp-if'),
     newer = require('gulp-newer');
-
 // =================
 // configs
 // =================
@@ -204,6 +204,12 @@ function initWebpackConfig() {
 
     _webpack.module = {
         loaders: [{
+            test: /\.js$/,
+            loader: 'babel-loader',
+            query: {
+                presets: ['es2015-loose']
+            }
+        },{
             test: /\.jade$/,
             loader: 'jade-loader'
         }, {
@@ -277,17 +283,23 @@ console.log('start to build project [' + configs.name + ']...');
 
 // remove old or tmp files
 gulp.task('clean', function(cb) {
-    del([dist, tmp, deploy, offlineCache], cb);
+    del([dist, tmp, deploy, offlineCache]).then(function(paths) {
+        cb();
+    });
 });
 
 // clean node_modules, fix windows file name to long bug..
 gulp.task('cleanmod', function(cb) {
-    del('./node_modules', cb);
+    del('./node_modules').then(function(paths) {
+        cb();
+    });
 });
 
 // clean all temp files
 gulp.task('cleanall', function(cb) {
-    del([dist, tmp, deploy, offlineCache, './.sass-cache'], cb);
+    del([dist, tmp, deploy, offlineCache, './.sass-cache']).then(function(paths) {
+        cb();
+    });
 });
 
 // copy js/html from src->dist
@@ -350,7 +362,7 @@ gulp.task('uglify', ['webpack'], function() {
 // stand alone cmd to make sure all css minified
 gulp.task('minifyCss', ['compass'], function() {
     return gulp.src(['{' + dist + ',tmp}/**/*.css', '!' + dist + 'js/chunk-*.css'])
-        .pipe(minifyCss())
+        .pipe(cleanCSS())
         .pipe(vinylPaths(del))
         .pipe(rev())
         .pipe(savefile())
